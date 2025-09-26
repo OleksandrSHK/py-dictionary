@@ -6,6 +6,7 @@ class Dictionary:
         self.capacity = 8  # initial capacity
         self.hash_table = [None] * self.capacity  # pre-selected list
         self.length = 0  # numbers of elements
+        self.DELETED = object()
 
     def resize(self) -> None:
         old_table = self.hash_table
@@ -54,43 +55,50 @@ class Dictionary:
         index = key_hash % self.capacity
         while self.hash_table[index] is not None:
             if self.hash_table[index][0] == key:
-                self.hash_table[index] = None
+                self.hash_table[index] = self.DELETED
                 self.length -= 1
                 return
             index = (index + 1) % self.capacity
         raise KeyError(f"Key {key} is not found")
 
-    def get(self, key: Any) -> Any | None:
+    def get(self, key: Any, default: Any = None) -> Any | None:
         key_hash = hash(key)
         index = key_hash % self.capacity
         while self.hash_table[index] is not None:
             if self.hash_table[index][0] == key:
                 return self.hash_table[index][2]
             index = (index + 1) % self.capacity
-        return None
+        return default
 
-    def pop(self, key: Any) -> Any:
+    def pop(self, key: Any, default: Any = None) -> Any:
         key_hash = hash(key)
         index = key_hash % self.capacity
         while self.hash_table[index] is not None:
             if self.hash_table[index][0] == key:
                 result = self.hash_table[index][2]
-                self.hash_table[index] = None
+                self.hash_table[index] = self.DELETED
                 self.length -= 1
                 return result
             index = (index + 1) % self.capacity
-        raise KeyError(f"Key {key} is not found")
+        return default
 
-    def update(self, key: Any, value: Any) -> None:
-        self.__setitem__(key, value)
+    def update(self, other: Any = None, kwargs: Any = None) -> None:
+        if other is not None:
+            try:
+                for key in other:
+                    value = other[key]
+                    self.__setitem__(key, value)
+            except TypeError:
+                for pair in other:
+                    key = pair[0]
+                    value = pair[1]
+                    self.__setitem__(key, value)
+        if kwargs is not None:
+            for key in kwargs:
+                value = kwargs[key]
+                self.__setitem__(key, value)
 
-    def __iter__(self) -> Any:
-        self.iter_index = 0
-        return self
-
-    def __next__(self) -> None:
-        while self.iter_index < self.capacity:
-            for node in self.hash_table:
-                if node is not None:
-                    yield node[0]
-        raise StopIteration
+    def __iter__(self) -> None:
+        for node in self.hash_table:
+            if node is not None:
+                yield node[0]
